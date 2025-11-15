@@ -38,8 +38,11 @@ app.get('/media', (req, res) => {
 // ✅ Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-const PORT = 4000;
-app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+});
+
 
 app.post('/media/upload', upload.single('file'), async (req, res) => {
   console.log("Upload received:", req.file); // 👈 add this
