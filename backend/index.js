@@ -1,68 +1,40 @@
-import express from 'express';
-import cors from 'cors';
-import multer from 'multer';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { randomUUID } from 'crypto';
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import path from "path";
 
-// Setup path helpers
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// ROUTES
+import authRoutes from "./routes/auth.js";
+import mediaRoutes from "./routes/mediaRoutes.js";
 
+dotenv.config();
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-const upload = multer({ dest: path.join(__dirname, 'uploads/') });
+// Serve uploaded images
+app.use("/uploads", express.static("uploads"));
 
-let media = [];
+// Connect to MongoDB
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.log("Mongo error:", err));
 
-// ✅ Upload route
-app.post('/media/upload', upload.single('file'), (req, res) => {
-  const { title, caption } = req.body;
-  const newMedia = {
-    id: randomUUID(),
-    filename: req.file.filename,
-    title,
-    caption,
-  };
-  media.push(newMedia);
-  res.json(newMedia);
+// AUTH routes
+app.use("/auth", authRoutes);
+
+// MEDIA routes
+// IMPORTANT: your frontend must call /api/media/...
+app.use("/api/media", mediaRoutes);
+
+// Home test route
+app.get("/", (req, res) => {
+  res.send("Backend running!");
 });
 
-// ✅ Get all media
-app.get('/media', (req, res) => {
-  res.json(media);
-});
-
-// ✅ Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
+// Start server
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-});
-
-
-app.post('/media/upload', upload.single('file'), async (req, res) => {
-  console.log("Upload received:", req.file); // 👈 add this
-  const { title, caption } = req.body;
-
-  if (!req.file) {
-    return res.status(400).send('No file uploaded');
-  }
-
-  const newMedia = {
-    id: randomUUID(),
-    filename: req.file.filename,
-    title,
-    caption,
-    comments: [],
-    ratings: []
-  };
-
-  media.push(newMedia);
-  await saveMedia();
-  console.log("Saved media:", newMedia); // 👈 add this
-  res.json(newMedia);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
